@@ -268,7 +268,7 @@ const thenable = {
 
 まず ECMAScript の仕様には「**抽象操作 (Abstract Operation)**」というものが記述されています。
 
-抽象操作とは ECMAScript 仕様の内部で利用される関数であり、JavaScript から直接呼び出すことはできません。意味合いとしては単純に仕様の編集者が何回も同じことを書かないように「長い表記を省略して完結に記述できるようにする」というのが大きいです。
+抽象操作とは ECMAScript 仕様の内部で利用される関数であり、JavaScript から直接呼び出すことはできません。意味合いとしては単純に仕様の編集者が何回も同じことを書かないように「長い表記を省略して簡潔に記述できるようにする」というのが大きいです。
 
 ECMAScript 仕様のプロトタイプメソッドや静的メソッド、抽象操作についてはそれぞれ「アルゴリズムステップ (Algorithm steps)」というものが定義されています。アルゴリズムステップが仕様が定義する操作の挙動を表現しているため、仕様を理解するためには各操作のアルゴリズムステップを理解していくことになります。
 
@@ -288,7 +288,7 @@ ECMAScript 仕様のプロトタイプメソッドや静的メソッド、抽象
 
 ![promise抽象操作](/images/js-async/PromiseSpec.excalidraw.png)
 
-例えば `Promise.prototype.catch` や `Promise.prototype.finally` といったプロトタイプメソッドは、実は大半の作業を `Promise.prototype.then` にまかせており、さらに `Promise.prototype.then` は PerformPromiseThen という操作に多くの作業をまかせています。また、`Promise.prototype.then` や `Promise.resolve` や Await などの多くの操作から NewPromiseCapability 抽象操作が呼び出されて Promise オブジェクトの作成が行われています。
+例えば `Promise.prototype.catch` や `Promise.prototype.finally` といったプロトタイプメソッドは、実は大半の作業を `Promise.prototype.then` にまかせており、さらに `Promise.prototype.then` は PerformPromiseThen という抽象操作に多くの作業をまかせています。また、`Promise.prototype.then` や `Promise.resolve` や Await などの多くの操作から NewPromiseCapability 抽象操作が呼び出されて Promise オブジェクトの作成が行われています。
 
 ### ECMAScript の V8 実装
 
@@ -309,7 +309,7 @@ https://source.chromium.org/chromium/chromium/src/+/main:v8/src/builtins/promise
 図一番下の [HostEnqueuPromiseJob](https://tc39.es/ecma262/#sec-hostenqueuepromisejob) という操作が最終的にマイクロタスクをマイクロタスクキューへとエンキューする操作です。
 
 :::message
-だたし、ECMAScript では「マイクロタスク」は [Job](https://tc39.es/ecma262/#job) と呼ばれるものとして扱われていることに注意してください。マイクロタスク自体はあくまで WHATWG の HTML 仕様に定義されているものです。
+ただし、ECMAScript では「マイクロタスク」は [Job](https://tc39.es/ecma262/#job) と呼ばれるものとして扱われていることに注意してください。マイクロタスク自体はあくまで WHATWG の HTML 仕様に定義されているものです。
 :::
 
 Job というのは実際には内部的な仕様の型 (Specifiaction type) である抽象クロージャ ([Abstract Closure](https://tc39.es/ecma262/#sec-abstract-closure)) という型の値です。
@@ -416,7 +416,7 @@ Promise コンストラクタを使ってプロミスインスタンスを作成
 >   - d. Let rejectJob be [NewPromiseReactionJob](https://tc39.es/ecma262/#sec-newpromisereactionjob)(rejectReaction, reason).
 >   - e. Perform [HostEnqueuePromiseJob](https://tc39.es/ecma262/#sec-hostenqueuepromisejob)(rejectJob.\[\[Job\]\], rejectJob.\[\[Realm\]\]).
 
-NewPromiseReactiobJob は上で説明したように Job (マイクロタスク) を作成するための操作です。
+NewPromiseReactionJob は上で説明したように Job (マイクロタスク) を作成するための操作です。
 
 この NewPromiseReactionJob 操作を呼び起こすと、then 操作の最初で NewPromiseCapability 操作をつかって内部的に作り出した CreateResolvingFunctions の関数を呼び出したことになるため、`resolve` 関数の呼び出しが起きています。
 
@@ -482,7 +482,7 @@ ECMAScript のアルゴリズムステップにおける "Lex x be someValue" �
 >
 > When a promise resolve function is called with argument resolution, the following steps are taken:
 
-Promise Resole Function は `[[Promise]]` と `[[AlreadyResolve]]` という内部スロットを持つ無名のビルトイン関数 (ECMAScript に備え付けの関数) であり、引数 `resolution` で呼び出されることで記述されているアルゴリズムステップを実行するとのことです。
+Promise Resolve Function は `[[Promise]]` と `[[AlreadyResolve]]` という内部スロットを持つ無名のビルトイン関数 (ECMAScript に備え付けの関数) であり、引数 `resolution` で呼び出されることで記述されているアルゴリズムステップを実行するとのことです。
 
 実はこの引数 `resolution` が非常に重要です。`resolve` 関数が呼び出されるのは以下のような形式となっていますね。
 
@@ -494,7 +494,7 @@ resolve(resolution);
 
 ```js
 const p = new Promise(resolve => {
-  resolve(42); // 履行値を reslution として渡す
+  resolve(42); // 履行値を resolution として渡す
 });
 ```
 
@@ -580,7 +580,7 @@ promise オブジェクトの内部状態を実際に遷移させるのは [Fulf
 
 この操作が実行されると、promise の内部状態を書き換えて、[TriggerPromiseReactions](https://tc39.es/ecma262/#sec-triggerpromisereactions) という抽象操作が実行されます。この操作内の [HostEnqueuPromieJob](https://tc39.es/ecma262/#sec-hostenqueuepromisejob) 操作によって、もし次の chain している `then` や `catch` などがあればそのコールバックをマイクロタスクとして発火させます。
 
-ここまでで、解決値が「元の promise」の場合と「オブジェクトではない値」の場合のケースの処理がカバーできました。つまり `reslution` として渡される値が文字列や数値などの値である場合には直ちに履行することができることがわかります。そして、履行したら `return undefined` で `resolve` 関数自体の処理が終了するので、残りのアルゴリズムステップは無視できることになります。
+ここまでで、解決値が「元の promise」の場合と「オブジェクトではない値」の場合のケースの処理がカバーできました。つまり `resolution` として渡される値が文字列や数値などの値である場合には直ちに履行することができることがわかります。そして、履行したら `return undefined` で `resolve` 関数自体の処理が終了するので、残りのアルゴリズムステップは無視できることになります。
 
 残されたケースは `resolution` の値が「オブジェクトの場合」であり、さらに「then メソッドを持つかどうか」、つまり thenable であるかどうかの処理の振り分けを行う step.12 から step.16 までを実装します。
 
@@ -673,7 +673,7 @@ Promise.resolve(42)
 
 `Promise.resolve(42)` は履行した promise インスタンスなので、chain されている `then()` メソッドのコールバック関数は直ちにマイクロタスクとして発行されます。このときのマイクロタスクの実体である Job は NewPromiseReactoinJob 抽象操作で作成されています。これが一個目のマイクロタスクです。
 
-イベントループでコールバックがマイクロタスクが処理されるとき、`then` メソッドの実行であらかじめ CreateResolutionFunctions で作成された `resolve` 関数が Thenable な値である `Promise.resolve(42 + 1)` を引数 `resolution` として使って呼び出されます。
+イベントループでコールバックがマイクロタスクとして処理されるとき、`then` メソッドの実行であらかじめ CreateResolutionFunctions で作成された `resolve` 関数が Thenable な値である `Promise.resolve(42 + 1)` を引数 `resolution` として使って呼び出されます。
 
 ```js
 // このような関数の実行が起きる
@@ -909,7 +909,7 @@ Promise.resolve(42)
 
 ## 解決値の違いによる挙動のまとめ
 
-`resolve` 関数の引数である `reslution` (解決値) の違いによって `resolve` 関数の処理は場合分けされます。そして、それによって発生するマイクロタスクの数が異なることになりました。結果をまとめておきます。
+`resolve` 関数の引数である `resolution` (解決値) の違いによって `resolve` 関数の処理は場合分けされます。そして、それによって発生するマイクロタスクの数が異なることになりました。結果をまとめておきます。
 
 解決値の値の種類 | (ステップ) 起こる処理
 --|--
